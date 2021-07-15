@@ -1,0 +1,1 @@
+short mastermind_optimized(short secret, short challenger);
