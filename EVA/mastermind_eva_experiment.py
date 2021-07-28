@@ -7,45 +7,45 @@ import time
 number_bits = 12
 
 
-mastermind_process = EvaProgram('Control_Peg', vec_size=8192)
-with mastermind_process:
-    player_0 = Input('encoded_vec')
+postion_counter = EvaProgram('White_Control_Peg_0', vec_size=32768)
+with postion_counter:
+    challenger_0 = Input('encoded_vec')
     result = 0
     color_verification = 1
     for j in range(4): # 0-1-2-3
         for i in range(number_bits):
             # this is a not xor
-            tmp = (player_0 << i) - (player_0 << i + number_bits + 3 * j)
+            tmp = (challenger_0 << i) - (challenger_0 << i + number_bits + 3*j)
             tmp = tmp * tmp
             tmp = tmp - 1
             color_verification *= tmp * tmp  # this might be too much for ckks imprecision
             if (i % 3 == 2):
                 result += color_verification
                 color_verification = 1
-        if j==0:
-            result*=8 # this is not the reason why precision is destroyed to an irrecoverable state
+        if (j==0):
+            Output('result_red', result)
+            result=0;
 
-    Output('result', result)
+    Output('result_white', result)
 
-mastermind_process.set_output_ranges(30)
-mastermind_process.set_input_scales(30)
+postion_counter.set_output_ranges(100)
+postion_counter.set_input_scales(200)
 
 
 
-def make_inputs(player_propostion, code, size):
+def make_inputs(propostion, code, size):
     fact = 4
-    number = size - (len(player_propostion) + len(code) * fact)
-    arr_num = player_propostion + code * fact + [0] * number  # proposition and solution and solution and solution and ...
+    number = size - (len(propostion) + len(code) * fact)
+    arr_num = propostion + code * fact + [0] * number  # proposition and solution and solution and solution and ...
     # print(arr_num)
     return arr_num
 
 
-def result_analysis(player_proposition, result):
-    print(result)
-    reds = result // 8
-    whites = result % 8
+def result_analysis(proposition, result):
+    reds = result[0]
+    whites = result[1]
     print('{} has {} color(s) at exact position and {} correct color(s) at inexact position'
-          .format(player_proposition, reds, whites))
+          .format(proposition, reds, whites))
     return reds == 4
 
 
@@ -64,15 +64,12 @@ if __name__ == "__main__":
         for str_bin in array_b:
             string_b += str_bin
         propostion_b = [0 if a == '0' else 1 for a in string_b]
+        big_result = []
+
 
         compiler = CKKSCompiler()
-        compiled, params, signature = compiler.compile(mastermind_process)
-
-        name = "mstrmnd_complete.dot"
-        f = open(name, "w")
-        f.write(compiled.to_DOT())
-        f.close()
-
+        compiled, params, signature = compiler.compile(postion_counter)
+        # print(compiled.to_DOT())
         public_ctx, secret_ctx = generate_keys(params)
         inputs_arr = make_inputs(propostion_b, code_b, compiled.vec_size)
 
@@ -84,15 +81,17 @@ if __name__ == "__main__":
         outputs = secret_ctx.decrypt(encOutputs, signature)
         print(time.time() - t0, "seconds wall time")
 
+        print(outputs["result_red"][1])
+        print(outputs["result_white"][1])
 
-        print(outputs["result"][1])
 
-        my_result=round(outputs["result"][1])
+        big_result.append(round(outputs["result_red"][1]))
+        big_result.append(round(outputs["result_white"][1]))
 
 
         reference = evaluate(compiled, inputs)
         # print('MSE', valuation_mse(outputs, reference))
-        game_is_won = result_analysis(propostion_b, my_result)
+        game_is_won = result_analysis(propostion_b, big_result)
         attempts_made += 1
         if game_is_won:
             print("A winner is you!")
