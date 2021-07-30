@@ -2,7 +2,7 @@
 using namespace std;
 using namespace seal;
     
-void bfv_small(){
+void bfv_code(){
     // tree parameters
     EncryptionParameters parms(scheme_type::bfv);
     size_t poly_modulus_degree = 8192; // lower than this is refused for this code
