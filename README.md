@@ -1,4 +1,4 @@
-# Comparaison et observations de librairies de Chiffrement Homomorphe
+# Comparaison et intégration de librairies de Chiffrement Homomorphe
 
 ## Author
 ```
